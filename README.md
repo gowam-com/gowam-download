@@ -11,7 +11,7 @@ Netherlands versie onder
     - Extrayez le contenu du fichier téléchargé dans le dossier de votre choix.
     
 3. **Lancer l'application**
-    - Dans le dossier `gowam`, double-cliquez sur le fichier `GowamAdmin.exe` pour démarrer l'application d'administration.
+    - Double-cliquez sur le fichier `GowamAdmin.exe` pour démarrer l'application d'administration.
 
 4. **Se connecter à Gowam Admin**
     - Entrez votre **nom d'utilisateur** et **mot de passe** qui vous ont été envoyés par mail.
@@ -68,7 +68,7 @@ Netherlands versie onder
     - Pak de inhoud van het gedownloade bestand uit in een map naar keuze.
 
 3. **De applicatie starten**
-    - Dubbelklik in de map `gowam` op het bestand `GowamAdmin.exe` om de beheertoepassing te starten.
+    - Dubbelklik op het bestand `GowamAdmin.exe` om de beheertoepassing te starten.
 
 4. **Inloggen op Gowam Admin**
     - Voer uw **gebruikersnaam** en **wachtwoord** in die u per e-mail heeft ontvangen.
