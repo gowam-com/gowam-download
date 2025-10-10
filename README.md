@@ -1,11 +1,14 @@
-Netherlands versie onder
+- Download [Gowam Admin for Windows](gowam-admin-windows.zip)
+- Download [Gowam for Windows](gowam-windows.zip)
+
+---
 
 # FR
 
 ## Installer Gowam Admin sur Windows
 
 1. **Télécharger Gowam Admin**
-    - Téléchargez la [dernière version de Gowam Admin](https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-admin-windows.zip).
+    - Téléchargez la [dernière version de Gowam Admin](gowam-admin-windows.zip).
 
 2. **Décompresser l'archive**
     - Extrayez le contenu du fichier téléchargé dans le dossier de votre choix.
@@ -39,7 +42,7 @@ Netherlands versie onder
 ## Installer Gowam PEPPOL-DBF ou Local-Only sur Windows
 
 1. **Télécharger Gowam**
-    - Téléchargez la [dernière version de Gowam](https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-windows.zip).
+    - Téléchargez la [dernière version de Gowam](gowam-windows.zip).
 
 2. **Décompresser l'archive**
     - **IMPORTANT**: Dans le répertoire de la workstation (obligatoire pour la version PEPPOL-DBF), créez un nouveau dossier nommé `gowam`.
@@ -57,12 +60,14 @@ Netherlands versie onder
     - Entrez le **nom d'utilisateur** et l'éventuel **mot de passe**, et sélectionnez le dossier à ouvrir.
     - Cliquez sur **Sign in** pour accéder au dossier sélectionné.
 
+---
+
 # NL
 
 ## Gowam Admin installeren op Windows
 
 1. **Gowam Admin downloaden**
-    - Download de [laatste versie van Gowam Admin](https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-admin-windows.zip).
+    - Download de [laatste versie van Gowam Admin](gowam-admin-windows.zip).
 
 2. **Het archief uitpakken**
     - Pak de inhoud van het gedownloade bestand uit in een map naar keuze.
@@ -96,7 +101,7 @@ Netherlands versie onder
 ## Gowam PEPPOL-DBF of Local-Only installeren op Windows
 
 1. **Gowam downloaden**
-    - Download de [laatste versie van Gowam](https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-windows.zip).
+    - Download de [laatste versie van Gowam](gowam-windows.zip).
 
 2. **Het archief uitpakken**
     - **BELANGRIJK**: Maak in de workstation-directory (verplicht voor de PEPPOL-DBF-versie) een nieuwe map genaamd `gowam`.
