@@ -13,9 +13,9 @@
       <pubDate>Wed, 15 Oct 2025 12:00:00 +0000</pubDate>
       <enclosure
         url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+27-macos.zip"
-        sparkle:edSignature="0IlNrFHGU/SCCR6Q2PwVHcJD3CE1IBaEAd16z3hU2Y4W4bAW3E+CuGBnqycl+XMtgeAR7qjvWg7fcnw1gkZCAA=="
+        sparkle:edSignature="r4eijaGI36wM9kaiGQwppnmkiqg/DCD+hT13YLMJHRK08vvvFXp41g3w++tOokdhwbOeJkchlIhsn1bxgZ0yCQ=="
         sparkle:os="macos"
-        length="53684340"
+        length="53718361"
         type="application/octet-stream" />
     </item>
   </channel>
