@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Gowam</title>
+    <description>Update feed for Gowam</description>
+    <language>en</language>
+
+    <item>
+      <title>Version 1.0.0</title>
+      <sparkle:version>27</sparkle:version> <!-- CFBundleVersion/build -->
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString> <!-- CFBundleShortVersionString -->
+      <sparkle:releaseNotesLink>https://github.com/gowam-com/gowam-download/raw/refs/heads/main/release_notes.html</sparkle:releaseNotesLink>
+      <pubDate>Tue, 15 Oct 2025 12:00:00 +0000</pubDate>
+      <enclosure
+        url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+27-macos.zip"
+        sparkle:edSignature="0IlNrFHGU/SCCR6Q2PwVHcJD3CE1IBaEAd16z3hU2Y4W4bAW3E+CuGBnqycl+XMtgeAR7qjvWg7fcnw1gkZCAA=="
+        sparkle:os="macos"
+        length="53684340"
+        type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
+
+
+
