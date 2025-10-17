@@ -21,10 +21,10 @@
     <item>
       <title>Version 1.0.0</title>
       <sparkle:releaseNotesLink>https://github.com/gowam-com/gowam-download/raw/refs/heads/main/release_notes.html</sparkle:releaseNotesLink>
-      <pubDate>Thu, 16 Oct 2025 17:00:00 +0000</pubDate>
+      <pubDate>Fri, 17 Oct 2025 12:00:00 +0000</pubDate>
       <enclosure
         url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+28-windows-setup.exe"
-        sparkle:dsaSignature="MDwCHFbiEB/xi/ZZpCTEnjcotL0kR+uI8HR2d0b5ntECHDgIYK5u+ESTFwSZdkKnuhSm/5gTs9tzbKStQzc="
+        sparkle:dsaSignature="MDwCHEEg4Qa8miQRb/kT8l8v6ZDwrw21Dk8E1IXC134CHGHxGlLen0LN9EZGVp7eAgTnZ5sHDpHQNhP4SJw="
         sparkle:version="1.0.0+28"
         sparkle:os="windows"
         length="0"
