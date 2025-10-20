@@ -1,5 +1,5 @@
 - Download [Gowam Admin for Windows](gowam-admin-windows.zip)
-- Download [Gowam for Windows](gowam-windows.zip)
+- Download [Gowam for Windows](gowam-windows-setup.exe)
 
 ---
 
@@ -42,7 +42,7 @@
 ## Installer Gowam PEPPOL-DBF ou Local-Only sur Windows
 
 1. **Télécharger Gowam**
-    - Téléchargez la [dernière version de Gowam](gowam-windows.zip).
+    - Téléchargez la [dernière version de Gowam](gowam-windows-setup.exe).
 
 2. **Décompresser l'archive**
     - **IMPORTANT**: Dans le répertoire de la workstation (obligatoire pour la version PEPPOL-DBF), créez un nouveau dossier nommé `gowam`.
@@ -101,7 +101,7 @@
 ## Gowam PEPPOL-DBF of Local-Only installeren op Windows
 
 1. **Gowam downloaden**
-    - Download de [laatste versie van Gowam](gowam-windows.zip).
+    - Download de [laatste versie van Gowam](gowam-windows-setup.exe).
 
 2. **Het archief uitpakken**
     - **BELANGRIJK**: Maak in de workstation-directory (verplicht voor de PEPPOL-DBF-versie) een nieuwe map genaamd `gowam`.
