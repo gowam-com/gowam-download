@@ -1,0 +1,64 @@
+***************************************************************************
+* Put here the custom event handler
+***************************************************************************
+
+*---------------------------------------------------------------------------------	
+PROCEDURE E_Doc2AfterBuildCrmFolderGroup 
+	PARAMETERS poDocForm
+
+	&& called after set CRM FOLDER GROUP in DOCFORM
+
+	poDocForm.zBeginGroup( "w_L:" )
+	
+		poDocForm.zBeginGroup( "BW9:" )
+
+			poDocForm.zAddLabel(":", "Peppol :" , "")
+			* pcMode, pcControlSource, pnWidth, pnHeight, pcFormat, pcWhen, pcValid, pnTop, pnLeft
+			poDocForm.zAddEditBox( "D", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number)", 90, 10, "", ".T.", ".T.")		
+			
+		poDocForm.zEndGroup( "" )	
+
+	poDocForm.zEndGroup( "" )
+		
+*-------------------------------------------------
+FUNCTION C_GetPeppolTecStatus
+	LPARAMETERS pcJnl, pnNumber
+	
+	LOCAL lnOldSelect, lcReturn
+	
+	lnOldSelect = SELECT(0)
+	lcReturn	= ""
+	
+	IF NOT goCache.DocHeadExist(pcJnl, pnNumber)
+		RETURN lcReturn
+	ENDIF
+	
+	IF !USED("hist")
+		=OpenTable("Hist", "LnkDoc", "Hist")
+	ENDIF
+	
+	SELECT hist
+	SET ORDER TO TAG LnkDoc
+	SET KEY TO pcJnl+STR(pnNumber,8)
+	GO BOTTOM
+	IF EOF()
+		lcReturn = MSG("No Peppol historic for this document %1 %2", pcJnl, pnNumber)
+		SELECT (lnOldSelect)
+		RETURN lcReturn
+	ENDIF
+	
+	lcReturn = "Status : "+ALLTRIM(hist.histstatut)+ " - "++ALLTRIM(hist.subject)+CHR(13)+CHR(10)
+	lcReturn = lcReturn + ALLTRIM(STRCONV(hist.body,11))+CHR(13)+CHR(10)
+	lcReturn = lcReturn + "Last error : "+CHR(13)+CHR(10)+ALLTRIM(STRCONV(hist.bbody,11))
+	
+	SELECT (lnOldSelect)
+	
+	RETURN lcReturn
+	
+	
+
+	
+	
+	
+	
+	
