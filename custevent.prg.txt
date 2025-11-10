@@ -12,17 +12,65 @@ PROCEDURE E_Doc2AfterBuildCrmFolderGroup
 	
 		poDocForm.zBeginGroup( "BW9:" )
 
-			poDocForm.zAddLabel(":", "Peppol :" , "")
-			* pcMode, pcControlSource, pnWidth, pnHeight, pcFormat, pcWhen, pcValid, pnTop, pnLeft
-			poDocForm.zAddEditBox( "D", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number)", 90, 10, "", ".T.", ".T.")		
+			poDocForm.zAddLabel(":", "Gowam Peppol :" , "")
+			=ADDPROPERTY(poDocForm, "zoC_PeppolTextBoxStatus", poDocForm.zAddTextBox("D:", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number)", 50, "", ".T.", ".T.", 0, 0, ""))
+			
+			=ADDPROPERTY(poDocForm, "zoC_PeppolEditBox", poDocForm.zAddEditBox( "D", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number,'desc')", 90, 10, "", ".T.", ".T."))
+			=ADDPROPERTY(poDocForm, "zoC_RefreshPeppolTimer", CREATEOBJECT("C_RefreshPeppolTimer", poDocForm))
 			
 		poDocForm.zEndGroup( "" )	
 
 	poDocForm.zEndGroup( "" )
 		
-*-------------------------------------------------
+*--------------------------------------------------------------------------------
 FUNCTION C_GetPeppolTecStatus
-	LPARAMETERS pcJnl, pnNumber
+	LPARAMETERS pcJnl, pnNumber, pcType
+	
+	LOCAL lnOldSelect, lcReturn
+	
+	lnOldSelect = SELECT(0)
+	lcReturn	= ""
+	
+	pcJnl = PADR(pcJnl,8)
+	
+	IF NOT goCache.DocHeadExist(pcJnl, pnNumber)
+		RETURN lcReturn
+	ENDIF
+	
+	IF !USED("hist")
+		=OpenTable("Hist", "LnkDoc", "Hist")
+	ENDIF
+	
+	IF EMPTY(pcType)
+		pcType = ""
+	ENDIF
+		
+	SELECT hist
+	SET ORDER TO TAG LnkDoc
+	SET KEY TO pcJnl+STR(pnNumber,8)
+	GO BOTTOM
+	IF EOF()
+		IF !EMPTY(pcType)
+			lcReturn = MSG("No Peppol historic for this document %1 %2", pcJnl, pnNumber)
+		ENDIF
+		SELECT (lnOldSelect)
+		RETURN lcReturn
+	ENDIF
+	
+	IF EMPTY(pcType)
+		lcReturn = "Status : "+ALLTRIM(hist.histstatut)+ " - "++ALLTRIM(hist.subject)
+	ELSE
+		lcReturn = ALLTRIM(STRCONV(hist.body,11))+CHR(13)+CHR(10)
+		lcReturn = lcReturn + ALLTRIM(STRCONV(hist.bbody,11))
+	ENDIF
+	
+	SELECT (lnOldSelect)
+	
+	RETURN lcReturn
+
+*--------------------------------------------------------------------------------
+FUNCTION C_AddHistPeppolAction
+	LPARAMETERS pcJnl, pnNumber, pcHistStatus, pcSubject
 	
 	LOCAL lnOldSelect, lcReturn
 	
@@ -38,27 +86,208 @@ FUNCTION C_GetPeppolTecStatus
 	ENDIF
 	
 	SELECT hist
-	SET ORDER TO TAG LnkDoc
-	SET KEY TO pcJnl+STR(pnNumber,8)
-	GO BOTTOM
-	IF EOF()
-		lcReturn = MSG("No Peppol historic for this document %1 %2", pcJnl, pnNumber)
-		SELECT (lnOldSelect)
-		RETURN lcReturn
-	ENDIF
 	
-	lcReturn = "Status : "+ALLTRIM(hist.histstatut)+ " - "++ALLTRIM(hist.subject)+CHR(13)+CHR(10)
-	lcReturn = lcReturn + ALLTRIM(STRCONV(hist.body,11))+CHR(13)+CHR(10)
-	lcReturn = lcReturn + "Last error : "+CHR(13)+CHR(10)+ALLTRIM(STRCONV(hist.bbody,11))
+	APPEND BLANK
+	REPLACE Hist.HistId 		WITH GetNewId()
+	REPLACE Hist.HistType 		WITH "PEPPOL"
+	REPLACE Hist.HistStatut 	WITH pcHistStatus
+	REPLACE Hist.Subject 		WITH pcSubject
+	REPLACE Hist.RefJnl 		WITH pcJnl
+	REPLACE Hist.RefNumber		WITH pnNumber
+	REPLACE Hist.Date			WITH DATE()
+	REPLACE Hist.Time			WITH TTOC(DATETIME(), 2)
+	DO FlexDb_ModDate
 	
 	SELECT (lnOldSelect)
 	
-	RETURN lcReturn
+	RETURN 	
 	
-	
+*--------------------------------------------------------------------------------
+PROCEDURE E_Doc2MenuBuild
+	PARAMETERS pcJnl, pnNumber, pcContext, plCalledFromList, poCallingForm, poCallingMenu
 
+*	Old version but compatible version 6.0
+*	DEFINE BAR 1001 OF DocNewOtherOption PROMPT "My test"
+*	ON SELECTION BAR 1001 OF DocNewOtherOption DO MyTest
+
+*	From version 6.0
+*	poCallingMenu.DefineBar( pcPicture, pcToolTipText, pcClickProc, plUseMainTable, pcCaption, plNoOption, pcCmd )
+*	Example : poCallingMenu.DefineBar( PicExcel(), l("4957^Exporter vers Excel"), "_Screen.ActiveForm.zoFormMainGroup.DocdetExportExcel()" )	
+
+	poCallingMenu.DefineBar( PicExport(), "Envoi Peppol via Gowam", "C_SendToPeppolViaGowam()")
+
+*--------------------------------------------------------------------------------	
+PROCEDURE E_DocAfterPrDoc
+	PARAMETERS pcJnl, pnNum1, pnNum2, plDirectprint, pnAction
 	
+	&& Called after print all document.
+	&& pnAction : 1 = page setup, 2 = print preview, 3 = print, ...
 	
+	IF (goCache.JnlGetFieldValue(pcJnl, "TYPE", "") = "CI" OR goCache.JnlGetFieldValue(pcJnl, "TYPE", "") = "CC") AND INLIST(pnAction, 3, 4, 6)
+		LOCAL lcMessage, lcStatus
+		lcMessage = ""
+		lcStatus  = ""
+		IF pnNum1 = pnNum2
+			lcMessage = MSG("Voulez-vous envoyer ce document %1 %2 sur le réseau Peppol via Gowam ?", pcJnl, pnNum1)
+			&& Envoi d'un seul document
+			lcStatus = C_GetPeppolTecStatus(pcJnl, pnNum1)
+			IF "OK" $ lcStatus 
+				&& Déjà envoyé, rien à faire
+				lcMessage = ""
+			ELSE
+				IF YesNo(lcMessage)
+					lcMessage = ""
+					C_SendToPeppol(pcJnl, TRANSFORM(pnNum1), TRANSFORM(pnNum2), @lcMessage)	
+				ENDIF
+			ENDIF
+		ELSE
+			&& Envoi en batch, ne pas poser de questions et envoyer
+			C_SendToPeppol(pcJnl, TRANSFORM(pnNum1), TRANSFORM(pnNum2), @lcMessage)
+		ENDIF
+		IF !EMPTY(lcMessage)
+			Stop(lcMessage)
+		ENDIF
+	ENDIF
 	
+	RETURN
+		
+*--------------------------------------------------------------------------------
+PROCEDURE C_SendToPeppolViaGowam
+
+    LOCAL lcErrorMsg, lcJnl, lcNumberFrom, lcNumberTo, lcStatus
+
+	lcErrorMsg 		= ""
+    lcJnl			= ALLTRIM(c_dochead.jnl)
+    lcNumberFrom	= TRANSFORM(c_dochead.Number)
+    lcNumberTo		= TRANSFORM(c_dochead.Number)
+    
+    lcStatus 		= C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
+    
+    IF "OK" $ lcStatus 
+    	&& Déjà envoyé, rien à faire
+    	Info("Ce document a déjà été envoyé et accepté sur le réseau Peppol")
+    ELSE
+    	&& Send
+	   	C_SendToPeppol(lcJnl, lcNumberFrom, lcNumberTo, @lcErrorMsg)
+	ENDIF
+    	
+	IF !EMPTY(lcErrorMsg)
+		Stop(lcErrorMsg)
+	ENDIF
+         
+ENDPROC
+
+*--------------------------------------------------------------------------------
+PROCEDURE C_SendToPeppol
+	LPARAMETERS pcJnl, pcNumberFrom, pcNumberTo, pcErrorMsg
+
+	LOCAL lcActualdir, lcGowamPath, lcFolder, lcUser, lcJnl, lcNumberFrom, lcNumberTo
+
+	lcActualdir 	= SYS(5)+CURDIR()
+	lcFolder 		= ALLTRIM(gcCompId)
+	lcUser 			= ALLTRIM(gcUserId)
+    lcGowamPath 	= lcActualdir+"Gowam"
+    lcJnl			= ALLTRIM(pcJnl)
+    lcNumberFrom 	= pcNumberFrom
+    lcNumberTo		= pcNumberTo
+    
+    IF !FILE(lcGowamPath+"\gowam.exe")
+    	pcErrorMsg = MSG("Le programme Gowam n'a pas été installé (%1) pour cette Workstation de Logistics", lcGowamPath)
+    	RETURN
+    ENDIF    
+    
+    CD (lcGowamPath)
+    	
+	LOCAL lnOldSelect, loShell, lcCommande, loExec, loError
 	
+	lnOldSelect = SELECT(0)
+	
+	TRY
+
+	    * Créer l'objet Shell
+	    loShell = CREATEOBJECT("WScript.Shell")
+	    
+	    lcGowamPath = lcGowamPath+"\gowam.exe"
+	    
+	    * Construire la commande
+	    lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser + [" --jnl="] + lcJnl + [" --numberFrom="] + lcNumberFrom + [" --numberTo="] + lcNumberTo +["]
+	        
+	    * Lancer en arrière-plan
+	    loExec = loShell.Run(lcCommande, 1, .F.)
+	        
+	    * Générer l'action (les actions) du CRM qui indique(nt) qu'une demande a été faite à Gowam
+	    IF lcNumberFrom = lcNumberTo OR VAL(lcNumberTo) < VAL(lcNumberFrom)
+	    	IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
+		   		C_AddHistPeppolAction(lcJnl, VAL(lcNumberFrom), "WAIT", "Processing in progress by Gowam")
+		   	ENDIF
+	   	ELSE
+	   		LOCAL lnAction, lnTotAction
+	   		lnTotAction = (VAL(lcNumberTo)-VAL(lcNumberFrom)) + 1
+	   		FOR lnAction = 1 TO lnTotAction
+	   			IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, (VAL(lcNumberFrom)-1)+lnAction)
+	   				C_AddHistPeppolAction(lcJnl, (VAL(lcNumberFrom)-1)+lnAction, "WAIT", "Processing in progress by Gowam")
+	   			ENDIF
+	   		ENDFOR	
+	   	ENDIF
+	CATCH TO loError
+		CatchError(loError)
+		pcErrorMsg = TRANSFORM(loError.Errorno)+" : "+loError.Message+CHR(13)+"Line : "+TRANSFORM(loError.lineno)+CHR(13)+"Procedure : "+TRANSFORM(loError.Procedure)+ CHR(13)+"Line Contents : "+TRANSFORM(loError.LineContents)
+	ENDTRY
+   
+   CD (lcActualdir)     			
+
+*///////////////////////////////////////////////////////////////////////////////////////////////////////////
+DEFINE CLASS C_RefreshPeppolTimer AS Timer
+	
+	Interval 			= 1000		&& Specifies the number of milliseconds between calls to a Timer control's Timer event
+	lTimerInWait		= .F.
+	lExit				= .F.
+	zoDocForm			= NULL
+
+	*--------------------------------------------------------------------------------
+	FUNCTION Init
+		LPARAMETERS poDocForm
+		
+		This.zoDocForm = poDocForm
+	
+	*--------------------------------------------------------------------------------
+	PROCEDURE Timer
+	
+		IF This.lTimerInWait
+			RETURN
+		ENDIF
+		
+		This.lTimerInWait = .T.
+			
+		This.RefreshPeppolEditBox()
+			
+		This.lTimerInWait = .F.
+
+	*--------------------------------------------------------------------------------
+	PROCEDURE RefreshPeppolEditBox
+
+		This.zoDocForm.zoC_PeppolTextBoxStatus.Alignment = 2
+		This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledForeColor = RGB(255,255,255)
+	
+		DO CASE
+			CASE "OK" $ This.zoDocForm.zoC_PeppolTextBoxStatus.Value
+				This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledBackColor = RGB(76,175,80)	&& Vert de Gowam	
+			CASE "KO" $ This.zoDocForm.zoC_PeppolTextBoxStatus.Value
+				This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledBackColor = RGB(244,67,54)	&& Rouge de Gowam
+			CASE "TODO" $ This.zoDocForm.zoC_PeppolTextBoxStatus.Value
+				This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledBackColor = RGB(150,243,1)	&& Bleu de Gowam	
+			CASE "WAIT" $ This.zoDocForm.zoC_PeppolTextBoxStatus.Value
+				This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledBackColor = RGB(255,152,0)	&& Orange de Gowam	
+			OTHERWISE
+				This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledBackColor = This.zoDocForm.BackColor
+		ENDCASE
+		This.zoDocForm.zoC_PeppolTextBoxStatus.Refresh()
+		This.zoDocForm.zoC_PeppolEditBox.Refresh()
+	
+	*--------------------------------------------------------------------------------
+	FUNCTION Destroy
+	
+		
+ENDDEFINE
+*///////////////////////////////////////////////////////////////////////////////////////////////////////////	
 	
