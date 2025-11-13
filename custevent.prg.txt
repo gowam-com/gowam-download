@@ -120,6 +120,10 @@ PROCEDURE E_Doc2MenuBuild
 PROCEDURE E_DocAfterPrDoc
 	PARAMETERS pcJnl, pnNum1, pnNum2, plDirectprint, pnAction
 	
+	IF USED("LstDocVi") 		&& Export vers VI en cours
+		RETURN
+	ENDIF
+	
 	&& Called after print all document.
 	&& pnAction : 1 = page setup, 2 = print preview, 3 = print, ...
 	
@@ -138,6 +142,8 @@ PROCEDURE E_DocAfterPrDoc
 				IF YesNo(lcMessage)
 					lcMessage = ""
 					C_SendToPeppol(pcJnl, TRANSFORM(pnNum1), TRANSFORM(pnNum2), @lcMessage)	
+				ELSE
+					lcMessage = ""
 				ENDIF
 			ENDIF
 		ELSE
