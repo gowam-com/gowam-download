@@ -15,7 +15,8 @@ PROCEDURE E_Doc2AfterBuildCrmFolderGroup
 			poDocForm.zAddLabel(":", "Gowam Peppol :" , "")
 			=ADDPROPERTY(poDocForm, "zoC_PeppolTextBoxStatus", poDocForm.zAddTextBox("D:", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number)", 50, "", ".T.", ".T.", 0, 0, ""))
 			
-			=ADDPROPERTY(poDocForm, "zoC_PeppolEditBox", poDocForm.zAddEditBox( "D", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number,'desc')", 90, 10, "", ".T.", ".T."))
+			=ADDPROPERTY(poDocForm, "zoC_PeppolEditBox", poDocForm.zAddEditBox( "", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number,'desc')", 90, 3, "", ".T.", ".T."))
+			poDocForm.zoC_PeppolEditBox.ReadOnly = .T.
 			=ADDPROPERTY(poDocForm, "zoC_RefreshPeppolTimer", CREATEOBJECT("C_RefreshPeppolTimer", poDocForm))
 			
 		poDocForm.zEndGroup( "" )	
@@ -117,10 +118,42 @@ PROCEDURE E_Doc2MenuBuild
 	poCallingMenu.DefineBar( PicExport(), "Envoi Peppol via Gowam", "C_SendToPeppolViaGowam()")
 
 *--------------------------------------------------------------------------------	
+FUNCTION E_AccountBeforeExecLink
+
+	&& RETURN .T. to continue the procedure (Executing Standard link)
+	&& RETURN .F. to stop the procedure (Executing Standard link)
+	IF TYPE("gl_isLinkToAccountInProgress") = "U"
+		PUBLIC gl_isLinkToAccountInProgress
+		gl_isLinkToAccountInProgress = .T.
+	ENDIF
+	
+	RETURN .T.	
+
+*--------------------------------------------------------------------------------	
+FUNCTION E_AccountAfterExecLink
+	PARAMETERS plLinkOk
+	
+	&& plLinkOk : Link succesfull (From account or event) ?
+
+	&& RETURN .T.	 	Link OK
+	&& RETURN .F. 		Link Not OK
+	&& RETURN plLinkOk	Link result from account or event
+	&& In general, plLinkOk must allways be returned
+	IF TYPE("gl_isLinkToAccountInProgress") # "U"
+		RELEASE gl_isLinkToAccountInProgress
+	ENDIF
+	
+	RETURN plLinkOk
+		
+*--------------------------------------------------------------------------------	
 PROCEDURE E_DocAfterPrDoc
 	PARAMETERS pcJnl, pnNum1, pnNum2, plDirectprint, pnAction
 	
 	IF USED("LstDocVi") 		&& Export vers VI en cours
+		RETURN
+	ENDIF
+	
+	IF TYPE("gl_isLinkToAccountInProgress") = "L"	&& Link to accounting in progress
 		RETURN
 	ENDIF
 	
@@ -187,17 +220,21 @@ ENDPROC
 PROCEDURE C_SendToPeppol
 	LPARAMETERS pcJnl, pcNumberFrom, pcNumberTo, pcErrorMsg
 
-	LOCAL lcActualdir, lcGowamPath, lcFolder, lcUser, lcJnl, lcNumberFrom, lcNumberTo
+	LOCAL lcActualdir, lcGowamPath, lcGowamCustomPath, lcFolder, lcUser, lcJnl, lcNumberFrom, lcNumberTo
 
-	lcActualdir 	= SYS(5)+CURDIR()
-	lcFolder 		= ALLTRIM(gcCompId)
-	lcUser 			= ALLTRIM(gcUserId)
-    lcGowamPath 	= lcActualdir+"Gowam"
-    lcJnl			= ALLTRIM(pcJnl)
-    lcNumberFrom 	= pcNumberFrom
-    lcNumberTo		= pcNumberTo
+	lcActualdir 		= SYS(5)+CURDIR()
+	lcFolder 			= ALLTRIM(gcCompId)
+	lcUser 				= ALLTRIM(gcUserId)
+    lcGowamPath 		= ADDBS(lcActualdir+"Gowam")
+    lcGowamCustomPath 	= GetParam("C_GOWAM_INSTALL_PATH", "")		&& For TS session where we have a lot of logistics workstation, set an unique directory where Gowam is installed
+    IF !EMPTY(lcGowamCustomPath)
+    	lcGowamPath = ADDBS(lcGowamCustomPath)
+    ENDIF
+    lcJnl				= ALLTRIM(pcJnl)
+    lcNumberFrom 		= pcNumberFrom
+    lcNumberTo			= pcNumberTo
     
-    IF !FILE(lcGowamPath+"\gowam.exe")
+    IF !FILE(lcGowamPath+"gowam.exe")
     	pcErrorMsg = MSG("Le programme Gowam n'a pas été installé (%1) pour cette Workstation de Logistics", lcGowamPath)
     	RETURN
     ENDIF    
@@ -213,13 +250,15 @@ PROCEDURE C_SendToPeppol
 	    * Créer l'objet Shell
 	    loShell = CREATEOBJECT("WScript.Shell")
 	    
-	    lcGowamPath = lcGowamPath+"\gowam.exe"
+	    lcGowamPath = lcGowamPath+"gowam.exe"
 	    
 	    * Construire la commande
 	    lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser + [" --jnl="] + lcJnl + [" --numberFrom="] + lcNumberFrom + [" --numberTo="] + lcNumberTo +["]
 	        
 	    * Lancer en arrière-plan
 	    loExec = loShell.Run(lcCommande, 1, .F.)
+	    
+	    CD (lcActualdir)
 	        
 	    * Générer l'action (les actions) du CRM qui indique(nt) qu'une demande a été faite à Gowam
 	    IF lcNumberFrom = lcNumberTo OR VAL(lcNumberTo) < VAL(lcNumberFrom)
@@ -241,7 +280,7 @@ PROCEDURE C_SendToPeppol
 	ENDTRY
    
    CD (lcActualdir)     			
-
+	
 *///////////////////////////////////////////////////////////////////////////////////////////////////////////
 DEFINE CLASS C_RefreshPeppolTimer AS Timer
 	
@@ -264,14 +303,16 @@ DEFINE CLASS C_RefreshPeppolTimer AS Timer
 		ENDIF
 		
 		This.lTimerInWait = .T.
-			
-		This.RefreshPeppolEditBox()
+		
+		IF NOT This.zoDocForm.zoFormMainGroup.DocIsInEdit()
+			This.RefreshPeppolEditBox()
+		ENDIF
 			
 		This.lTimerInWait = .F.
 
 	*--------------------------------------------------------------------------------
 	PROCEDURE RefreshPeppolEditBox
-
+	
 		This.zoDocForm.zoC_PeppolTextBoxStatus.Alignment = 2
 		This.zoDocForm.zoC_PeppolTextBoxStatus.DisabledForeColor = RGB(255,255,255)
 	
