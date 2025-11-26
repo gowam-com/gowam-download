@@ -49,7 +49,12 @@ FUNCTION C_GetPeppolTecStatus
 	SELECT hist
 	SET ORDER TO TAG LnkDoc
 	SET KEY TO pcJnl+STR(pnNumber,8)
-	GO BOTTOM
+	SET FILTER TO hist.histtype = "PEPPOL"
+	LOCATE FOR hist.histstatut = "OK "
+	IF !FOUND()
+		GO TOP
+		GO BOTTOM
+	ENDIF
 	IF EOF()
 		IF !EMPTY(pcType)
 			lcReturn = MSG("No Peppol historic for this document %1 %2", pcJnl, pnNumber)
@@ -115,45 +120,14 @@ PROCEDURE E_Doc2MenuBuild
 *	poCallingMenu.DefineBar( pcPicture, pcToolTipText, pcClickProc, plUseMainTable, pcCaption, plNoOption, pcCmd )
 *	Example : poCallingMenu.DefineBar( PicExcel(), l("4957^Exporter vers Excel"), "_Screen.ActiveForm.zoFormMainGroup.DocdetExportExcel()" )	
 
-	poCallingMenu.DefineBar( PicExport(), "Envoi Peppol via Gowam", "C_SendToPeppolViaGowam()")
+	poCallingMenu.DefineBar( PicExport(), "Send to Peppol through Gowam", "C_SendToPeppolViaGowam()")
 
-*--------------------------------------------------------------------------------	
-FUNCTION E_AccountBeforeExecLink
-
-	&& RETURN .T. to continue the procedure (Executing Standard link)
-	&& RETURN .F. to stop the procedure (Executing Standard link)
-	IF TYPE("gl_isLinkToAccountInProgress") = "U"
-		PUBLIC gl_isLinkToAccountInProgress
-		gl_isLinkToAccountInProgress = .T.
-	ENDIF
-	
-	RETURN .T.	
-
-*--------------------------------------------------------------------------------	
-FUNCTION E_AccountAfterExecLink
-	PARAMETERS plLinkOk
-	
-	&& plLinkOk : Link succesfull (From account or event) ?
-
-	&& RETURN .T.	 	Link OK
-	&& RETURN .F. 		Link Not OK
-	&& RETURN plLinkOk	Link result from account or event
-	&& In general, plLinkOk must allways be returned
-	IF TYPE("gl_isLinkToAccountInProgress") # "U"
-		RELEASE gl_isLinkToAccountInProgress
-	ENDIF
-	
-	RETURN plLinkOk
-		
 *--------------------------------------------------------------------------------	
 PROCEDURE E_DocAfterPrDoc
 	PARAMETERS pcJnl, pnNum1, pnNum2, plDirectprint, pnAction
 	
-	IF USED("LstDocVi") 		&& Export vers VI en cours
-		RETURN
-	ENDIF
-	
-	IF TYPE("gl_isLinkToAccountInProgress") = "L"	&& Link to accounting in progress
+	IF TYPE("pcSoc") = "C" AND TYPE("pnNumLinkAcc") = "N" 
+		&& Link to accounting in progress, and send PDF to VI in progress
 		RETURN
 	ENDIF
 	
@@ -165,7 +139,7 @@ PROCEDURE E_DocAfterPrDoc
 		lcMessage = ""
 		lcStatus  = ""
 		IF pnNum1 = pnNum2
-			lcMessage = MSG("Voulez-vous envoyer ce document %1 %2 sur le réseau Peppol via Gowam ?", pcJnl, pnNum1)
+			lcMessage = MSG("Do you want to send this document %1 %2 to Peppol through Gowam ?", pcJnl, pnNum1)
 			&& Envoi d'un seul document
 			lcStatus = C_GetPeppolTecStatus(pcJnl, pnNum1)
 			IF "OK" $ lcStatus 
@@ -180,8 +154,13 @@ PROCEDURE E_DocAfterPrDoc
 				ENDIF
 			ENDIF
 		ELSE
-			&& Envoi en batch, ne pas poser de questions et envoyer
-			C_SendToPeppol(pcJnl, TRANSFORM(pnNum1), TRANSFORM(pnNum2), @lcMessage)
+			lcMessage = MSG("Do you want to send this range of documents (journal %1 de %2 à %3) to Peppol through Gowam ?", pcJnl, pnNum1, pnNum2)
+			IF YesNo(lcMessage)
+				lcMessage = ""
+				C_SendToPeppol(pcJnl, TRANSFORM(pnNum1), TRANSFORM(pnNum2), @lcMessage)
+			ELSE
+				lcMessage = ""
+			ENDIF
 		ENDIF
 		IF !EMPTY(lcMessage)
 			Stop(lcMessage)
@@ -204,7 +183,7 @@ PROCEDURE C_SendToPeppolViaGowam
     
     IF "OK" $ lcStatus 
     	&& Déjà envoyé, rien à faire
-    	Info("Ce document a déjà été envoyé et accepté sur le réseau Peppol")
+    	Info("This document has already been sent and accepted on the Peppol network.")
     ELSE
     	&& Send
 	   	C_SendToPeppol(lcJnl, lcNumberFrom, lcNumberTo, @lcErrorMsg)
@@ -225,20 +204,24 @@ PROCEDURE C_SendToPeppol
 	lcActualdir 		= SYS(5)+CURDIR()
 	lcFolder 			= ALLTRIM(gcCompId)
 	lcUser 				= ALLTRIM(gcUserId)
-    lcGowamPath 		= ADDBS(lcActualdir+"Gowam")
-    lcGowamCustomPath 	= GetParam("C_GOWAM_INSTALL_PATH", "")		&& For TS session where we have a lot of logistics workstation, set an unique directory where Gowam is installed
-    IF !EMPTY(lcGowamCustomPath)
-    	lcGowamPath = ADDBS(lcGowamCustomPath)
-    ENDIF
-    lcJnl				= ALLTRIM(pcJnl)
-    lcNumberFrom 		= pcNumberFrom
-    lcNumberTo			= pcNumberTo
+	lcGowamPath 		= ADDBS(lcActualdir+"Gowam")
+	lcGowamCustomPath 	= GetParam("C_GOWAM_INSTALL_PATH", "")	&& For TS session where we have a lot of logistics workstation, set an unique directory where Gowam is installed
+	IF !EMPTY(lcGowamCustomPath)
+		lcGowamPath = ADDBS(lcGowamCustomPath)
+	ENDIF
+	lcJnl				= ALLTRIM(pcJnl)
+	lcNumberFrom 		= pcNumberFrom
+	lcNumberTo			= pcNumberTo
     
-    IF !FILE(lcGowamPath+"gowam.exe")
+	IF !FILE(lcGowamPath+"gowam.exe")
     	pcErrorMsg = MSG("Le programme Gowam n'a pas été installé (%1) pour cette Workstation de Logistics", lcGowamPath)
     	RETURN
     ENDIF    
-    
+
+	* To debug without sending, uncomment these 2 lines
+	* info(Msg("C_SendToPeppol - Journal %1 du numéro %2 au numéro %3", pcJnl, pcNumberFrom, pcNumberTo))
+	* return
+
     CD (lcGowamPath)
     	
 	LOCAL lnOldSelect, loShell, lcCommande, loExec, loError
@@ -255,11 +238,6 @@ PROCEDURE C_SendToPeppol
 	    * Construire la commande
 	    lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser + [" --jnl="] + lcJnl + [" --numberFrom="] + lcNumberFrom + [" --numberTo="] + lcNumberTo +["]
 	        
-	    * Lancer en arrière-plan
-	    loExec = loShell.Run(lcCommande, 1, .F.)
-	    
-	    CD (lcActualdir)
-	        
 	    * Générer l'action (les actions) du CRM qui indique(nt) qu'une demande a été faite à Gowam
 	    IF lcNumberFrom = lcNumberTo OR VAL(lcNumberTo) < VAL(lcNumberFrom)
 	    	IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
@@ -274,6 +252,10 @@ PROCEDURE C_SendToPeppol
 	   			ENDIF
 	   		ENDFOR	
 	   	ENDIF
+
+	    * Lancer en arrière-plan
+	    loExec = loShell.Run(lcCommande, 1, .F.)
+
 	CATCH TO loError
 		CatchError(loError)
 		pcErrorMsg = TRANSFORM(loError.Errorno)+" : "+loError.Message+CHR(13)+"Line : "+TRANSFORM(loError.lineno)+CHR(13)+"Procedure : "+TRANSFORM(loError.Procedure)+ CHR(13)+"Line Contents : "+TRANSFORM(loError.LineContents)
