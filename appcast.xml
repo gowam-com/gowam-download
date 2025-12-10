@@ -16,8 +16,8 @@
     </item>
     <item>
       <title>Version 1.0.0</title>
-      <pubDate>Mon, 08 Dec 2025 17:50:21 +0000</pubDate>
-      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+47-windows-setup.exe" sparkle:dsaSignature="MDwCHHgHGpnXTe5gArPQNAz669n8grTDonRBRbTP3gsCHAv1isTmJmszG9Z4e78usGoEyzx1AbYkyXmBRS8=" sparkle:version="1.0.0+47" sparkle:os="windows" length="0" type="application/octet-stream" />
+      <pubDate>Wed, 10 Dec 2025 22:27:45 +0000</pubDate>
+      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+48-windows-setup.exe" sparkle:dsaSignature="MDwCHG1o21I8d2T8ixUSrM4tBB3+avvGdnGoSzFT2M0CHDijLUchrtAtVjynZEnL/XOBOsbY1zi2hRGSoI8=" sparkle:version="1.0.0+48" sparkle:os="windows" length="0" type="application/octet-stream" />
     </item>
   </channel>
 </rss>
