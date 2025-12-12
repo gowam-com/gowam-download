@@ -1,0 +1,10 @@
+{
+    "files.autoGuessEncoding": true,
+    "files.associations": {
+        "*.prg.txt": "foxpro",
+        "*.prg": "foxpro"
+    },
+    "[foxpro]": {
+        "files.encoding": "windows1252"
+    }
+}
