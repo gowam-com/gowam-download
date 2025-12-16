@@ -83,7 +83,7 @@ FUNCTION C_GetPeppolTecStatus
 FUNCTION C_AddHistPeppolAction
 	LPARAMETERS pcJnl, pnNumber, pcHistStatus, pcSubject
 	
-	LOCAL lnOldSelect, lcReturn
+	LOCAL lnOldSelect, lcReturn, lcThirdId
 	
 	lnOldSelect = SELECT(0)
 	lcReturn	= ""
@@ -91,6 +91,8 @@ FUNCTION C_AddHistPeppolAction
 	IF NOT goCache.DocHeadExist(pcJnl, pnNumber)
 		RETURN lcReturn
 	ENDIF
+	
+	lcThirdId = goCache.DocHeadGetFieldValue(pcJnl, pnNumber, "THIRDID", "")
 	
 	IF !USED("hist")
 		=OpenTable("Hist", "LnkDoc", "Hist")
@@ -106,12 +108,14 @@ FUNCTION C_AddHistPeppolAction
 	REPLACE Hist.RefJnl 		WITH pcJnl
 	REPLACE Hist.RefNumber		WITH pnNumber
 	REPLACE Hist.Date			WITH DATE()
+	REPLACE Hist.ParentTbl		WITH "CUST"
+	REPLACE Hist.ParentId		WITH lcThirdId
 	REPLACE Hist.Time			WITH TTOC(DATETIME(), 2)
 	DO FlexDb_ModDate
 	
 	SELECT (lnOldSelect)
 	
-	RETURN 	
+	RETURN 		
 	
 *--------------------------------------------------------------------------------
 PROCEDURE E_Doc2MenuBuild
