@@ -174,10 +174,10 @@ PROCEDURE E_DocAfterPrDoc
 		lcStatus  = ""
 		IF pnNum1 = pnNum2
 			lcMessage = MSG("Do you want to send this document %1 %2 to Peppol through Gowam ?", pcJnl, pnNum1)
-			&& Envoi d'un seul document
+			&& Send one document
 			lcStatus = C_GetPeppolTecStatus(pcJnl, pnNum1)
 			IF "OK" $ lcStatus 
-				&& D j  envoy , rien   faire
+				&& Already sent, nothing to do
 				lcMessage = ""
 			ELSE
 				IF YesNo(lcMessage)
@@ -188,7 +188,7 @@ PROCEDURE E_DocAfterPrDoc
 				ENDIF
 			ENDIF
 		ELSE
-			lcMessage = MSG("Do you want to send this range of documents (journal %1 de %2   %3) to Peppol through Gowam ?", pcJnl, pnNum1, pnNum2)
+			lcMessage = MSG("Do you want to send this range of documents (journal %1 from %2 to %3) to Peppol through Gowam ?", pcJnl, pnNum1, pnNum2)
 			IF YesNo(lcMessage)
 				lcMessage = ""
 				C_SendToPeppol(pcJnl, TRANSFORM(pnNum1), TRANSFORM(pnNum2), @lcMessage)
@@ -202,15 +202,15 @@ PROCEDURE E_DocAfterPrDoc
 	ENDIF
 	
 	RETURN
-		
+
 *---------------------------------------------------------------------------------	
 PROCEDURE E_SendMailUpdate
 	LPARAMETERS pcTo, pcSubject, pcBody, pcOption, pcAttach1, pcAttach2, pcAttach3, pcAttach4, pcAttach5, pcAttach6, pcAttach7, pcAttach8, pcAttach9
 
-	&& Pour les clients inscrits sur Peppol, certains ne veulent plus recevoir de mail, utilisons alors la case   cocher de Logistics "N'accepte pas de mail" et redirigeons le mail en interne
+	&& For customers registered on Peppol, some no longer wish to receive emails; in this case, use the "Do not accept emails" checkbox in Logistics and redirect the email internally.
 	
 	IF USED("__Cust") AND LOWER(ALLTRIM(__Cust.Email)) = LOWER(ALLTRIM(pcTo)) AND __Cust.NoInvMail
-		pcTo = ""		&& ou mettre une adresse interne
+		pcTo = ""		&& or enter an internal address
 	ENDIF
 	
 	RETURN
@@ -228,7 +228,7 @@ PROCEDURE C_SendToPeppolViaGowam
     lcStatus 		= C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
     
     IF "OK" $ lcStatus 
-    	&& D j  envoy , rien   faire
+    	&& Already sent, nothing to do
     	Info("This document has already been sent and accepted on the Peppol network.")
     ELSE
     	&& Send
@@ -267,13 +267,9 @@ PROCEDURE C_SendToPeppol
 	lcNumberTo			= pcNumberTo
     
 	IF !FILE(lcGowamPath+"gowam.exe")
-    	pcErrorMsg = MSG("Le programme Gowam n'a pas  t  install  (%1) pour cette Workstation de Logistics", lcGowamPath)
+    	pcErrorMsg = MSG("The Gowam program has not been installed (%1) for this Logistics Workstation", lcGowamPath)
     	RETURN
     ENDIF    
-
-	* To debug without sending, uncomment these 2 lines
-	* info(Msg("C_SendToPeppol - Journal %1 du num ro %2 au num ro %3", pcJnl, pcNumberFrom, pcNumberTo))
-	* return
 
     CD (lcGowamPath)
     	
@@ -283,15 +279,15 @@ PROCEDURE C_SendToPeppol
 	
 	TRY
 
-	    * Cr er l'objet Shell
+	    * Create the Shell object
 	    loShell = CREATEOBJECT("WScript.Shell")
 	    
 	    lcGowamPath = lcGowamPath+"gowam.exe"
 	    
-	    * Construire la commande
+	    * Build the command
 	    lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser + [" --jnl="] + lcJnl + [" --numberFrom="] + lcNumberFrom + [" --numberTo="] + lcNumberTo +["]
 	        
-	    * G n rer l'action (les actions) du CRM qui indique(nt) qu'une demande a  t  faite   Gowam
+	    * Generate the CRM action(s) that indicate that a request has been made to Gowam
 	    IF lcNumberFrom = lcNumberTo OR VAL(lcNumberTo) < VAL(lcNumberFrom)
 	    	IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
 		   		C_AddHistPeppolAction(lcJnl, VAL(lcNumberFrom), "WAIT", "Processing in progress by Gowam")
@@ -306,7 +302,7 @@ PROCEDURE C_SendToPeppol
 	   		ENDFOR	
 	   	ENDIF
 
-	    * Lancer en arri re-plan
+	    * Launch in the background
 	    loExec = loShell.Run(lcCommande, 1, .F.)
 
 	CATCH TO loError
