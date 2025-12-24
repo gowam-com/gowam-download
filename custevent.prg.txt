@@ -164,7 +164,7 @@ FUNCTION E_Doc2CanDel
 PROCEDURE E_DocAfterPrDoc
 	PARAMETERS pcJnl, pnNum1, pnNum2, plDirectprint, pnAction
 	
-	IF TYPE("pcSoc") = "C" AND TYPE("pnNumLinkAcc") = "N" 
+	IF TYPE("pcSoc") = "C" 
 		&& Link to accounting in progress, and send PDF to VI in progress
 		RETURN
 	ENDIF
