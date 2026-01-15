@@ -5,7 +5,7 @@
     <description>Update feed for Gowam</description>
     <language>en</language>
     <item>
-      <title>Version 1.0.0</title>
+      <title>Version 1.0.0 MacOS</title>
       <sparkle:version>27</sparkle:version>
       <!-- CFBundleVersion/build -->
       <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
@@ -15,9 +15,14 @@
       <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+27-macos.zip" sparkle:edSignature="r4eijaGI36wM9kaiGQwppnmkiqg/DCD+hT13YLMJHRK08vvvFXp41g3w++tOokdhwbOeJkchlIhsn1bxgZ0yCQ==" sparkle:os="macos" length="53718361" type="application/octet-stream" />
     </item>
     <item>
-      <title>Version 1.0.0</title>
+      <title>Version 1.0.0 Windows Installer</title>
       <pubDate>Fri, 09 Jan 2026 16:26:41 +0000</pubDate>
       <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+54-windows-setup.exe" sparkle:dsaSignature="" sparkle:version="1.0.0+54" sparkle:os="windows" length="0" type="application/octet-stream" />
+    </item>
+    <item>
+      <title>Version 1.0.0 Windows ZIP</title>
+      <pubDate>Wed, 15 Jan 2026 12:00:00 +0000</pubDate>
+      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+54-windows.zip" sparkle:dsaSignature="" sparkle:version="1.0.0+54" sparkle:os="windows" length="0" type="application/zip" />
     </item>
   </channel>
 </rss>
