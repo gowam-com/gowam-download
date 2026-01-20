@@ -16,13 +16,13 @@
     </item>
     <item>
       <title>Version 1.0.0 Windows Installer</title>
-      <pubDate>Fri, 09 Jan 2026 16:26:41 +0000</pubDate>
-      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+54-windows-setup.exe" sparkle:dsaSignature="" sparkle:version="1.0.0+54" sparkle:os="windows" length="0" type="application/octet-stream" />
+      <pubDate>Tue, 20 Jan 2026 11:56:56 +0000</pubDate>
+      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+55-windows-setup.exe" sparkle:dsaSignature="" sparkle:version="1.0.0+55" sparkle:os="windows" length="0" type="application/octet-stream" />
     </item>
     <item>
       <title>Version 1.0.0 Windows ZIP</title>
-      <pubDate>Wed, 15 Jan 2026 12:00:00 +0000</pubDate>
-      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+54-windows.zip" sparkle:dsaSignature="" sparkle:version="1.0.0+54" sparkle:os="windows" length="0" type="application/zip" />
+      <pubDate>Tue, 20 Jan 2026 11:56:56 +0000</pubDate>
+      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-1.0.0+55-windows.zip" sparkle:dsaSignature="" sparkle:version="1.0.0+55" sparkle:os="windows" length="0" type="application/zip" />
     </item>
   </channel>
 </rss>
