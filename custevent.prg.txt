@@ -27,10 +27,11 @@ PROCEDURE E_Doc2AfterBuildCrmFolderGroup
 FUNCTION C_GetPeppolTecStatus
 	LPARAMETERS pcJnl, pnNumber, pcType
 	
-	LOCAL lnOldSelect, lcReturn
+	LOCAL lnOldSelect, lcReturn, llCheckFullSql, lnVersion
 	
-	lnOldSelect = SELECT(0)
-	lcReturn	= ""
+	lnOldSelect 	= SELECT(0)
+	lcReturn		= ""
+	llCheckFullSql	= .T.
 	
 	pcJnl = PADR(pcJnl,8)
 	
@@ -38,13 +39,25 @@ FUNCTION C_GetPeppolTecStatus
 		RETURN lcReturn
 	ENDIF
 	
-	IF isFullSql()
-		FlexDB_USE("hist")	
+	lnVersion = VAL(AppVersion())
+	
+	IF lnVersion < 7.0
+		llCheckFullSql = .F.
+	ENDIF
+	
+	IF llCheckFullSql
+		IF isFullSql()
+			FlexDB_USE("hist")	
+		ELSE
+			IF !USED("hist")
+				=OpenTable("Hist", "LnkDoc", "Hist")
+			ENDIF
+		ENDIF
 	ELSE
 		IF !USED("hist")
 			=OpenTable("Hist", "LnkDoc", "Hist")
 		ENDIF
-	ENDIF
+	ENDIF	
 	
 	IF EMPTY(pcType)
 		pcType = ""
