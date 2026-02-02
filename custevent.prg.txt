@@ -220,18 +220,38 @@ PROCEDURE E_DocAfterPrDoc
 	
 	RETURN
 
-*---------------------------------------------------------------------------------	
-PROCEDURE E_SendMailUpdate
-	LPARAMETERS pcTo, pcSubject, pcBody, pcOption, pcAttach1, pcAttach2, pcAttach3, pcAttach4, pcAttach5, pcAttach6, pcAttach7, pcAttach8, pcAttach9
-
-	&& For customers registered on Peppol, some no longer wish to receive emails; in this case, use the "Do not accept emails" checkbox in Logistics and redirect the email internally.
+*--------------------------------------------------------------------------------	
+PROCEDURE E_DocPrintTrapEmail
+	PARAMETERS pcJnl, pnNum, pnLayout, pcEmail
 	
-	IF USED("__Cust") AND LOWER(ALLTRIM(__Cust.Email)) = LOWER(ALLTRIM(pcTo)) AND __Cust.NoInvMail
-		pcTo = ""		&& or enter an internal address
+	LOCAL lcThirdId, lcJnlType, lcEmailAdressForInvoice, lcEmailAdressForOtherDoc
+	
+	lcJnlType = goCache.JnlGetFieldValue(pcJnl, "TYPE", "")
+	
+	lcThirdId = goCache.DocHeadGetFieldValue(pcJnl, pnNum, "THIRDID", "")
+
+	IF EMPTY(lcThirdId)
+		RETURN .F.
+	ENDIF
+
+	lcEmailAdressForInvoice 	= goCache.CustGetFieldValue(lcThirdId, "EMAIL", "")
+	lcEmailAdressForOtherDoc 	= goCache.CustGetFieldValue(lcThirdId, "C_EMAILOD", "@#@")
+	
+	IF lcEmailAdressForOtherDoc = "@#@"
+		&&Custom field does not exist
+		RETURN .F.
 	ENDIF
 	
-	RETURN
-			
+	IF INLIST(lcJnlType, "CI", "CC")
+		pcEmail = lcEmailAdressForInvoice		&& Clear CUST.EMAIL for invoices and credit notes if the customer no longer wants their invoices by email, but only on the Peppol network.
+		RETURN .T.
+	ELSE
+		pcEmail = lcEmailAdressForOtherDoc		&& Fill CUST.C_EMAILOD for documents other than invoices and credit notes
+		RETURN .T.
+	ENDIF
+	
+	RETURN .F.
+	
 *--------------------------------------------------------------------------------
 PROCEDURE C_SendToPeppolViaGowam
 
