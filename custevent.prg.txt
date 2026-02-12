@@ -128,7 +128,7 @@ FUNCTION C_AddHistPeppolAction
 	
 	SELECT (lnOldSelect)
 	
-	RETURN 		
+	RETURN 	
 	
 *--------------------------------------------------------------------------------
 PROCEDURE E_Doc2MenuBuild
@@ -145,6 +145,39 @@ PROCEDURE E_Doc2MenuBuild
 	poCallingMenu.DefineBar( PicExport(), "Send to Peppol through Gowam", "C_SendToPeppolViaGowam()")
 
 *--------------------------------------------------------------------------------
+PROCEDURE E_Doc2CanMod
+	PARAMETERS pcJnl, pnNumber, plCanMod, poDocForm
+	
+	&& By default : plCanMod =.T.
+
+	LOCAL lnOldSelect, lcJnlType, lcStatus
+	
+	lnOldSelect 	= SELECT(0)
+	lcJnlType 		= goCache.JnlGetFieldValue(pcJnl, "TYPE", "")
+	lcStatus		= ""
+	
+	IF lcJnlType = "CI" OR lcJnlType = "CC"
+		lcStatus = C_GetPeppolTecStatus(pcJnl, pnNumber)	
+		IF "OK" $ lcStatus AND NOT "not to sent" $ LOWER(lcStatus)
+			SELECT (lnOldSelect)
+			Stop("You cannot modify this document, it has been successfully sent over the Peppol network.")
+			plCanMod = .F.
+			RETURN plCanMod
+		ENDIF
+		IF "WAIT" $ lcStatus 
+			IF NOT YesNoConfirm("This document is currently being processed by Gowam, do you really want to modify it ? Click Yes if you are certain that Gowam is not processing it")
+				SELECT (lnOldSelect)
+				plCanMod = .F.
+				RETURN plCanMod			
+			ENDIF
+		ENDIF					
+	ENDIF
+	
+	SELECT (lnOldSelect)
+ 	
+	RETURN plCanMod	
+	
+*--------------------------------------------------------------------------------
 FUNCTION E_Doc2CanDel
 	PARAMETERS pcJnl, pnNumber, poCallingForm
 	
@@ -156,7 +189,7 @@ FUNCTION E_Doc2CanDel
 	
 	IF lcJnlType = "CI" OR lcJnlType = "CC"
 		lcStatus = C_GetPeppolTecStatus(pcJnl, pnNumber)	
-		IF "OK" $ lcStatus 
+		IF "OK" $ lcStatus AND NOT "not to sent" $ LOWER(lcStatus)
 			Stop("You cannot delete this document, it has been successfully sent over the Peppol network.")
 			SELECT (lnOldSelect)
 			RETURN .F.
@@ -177,15 +210,16 @@ FUNCTION E_Doc2CanDel
 PROCEDURE E_DocAfterPrDoc
 	PARAMETERS pcJnl, pnNum1, pnNum2, plDirectprint, pnAction
 	
-	IF TYPE("pcSoc") = "C" 
+	IF TYPE("pcSoc") = "C"
 		&& Link to accounting in progress, and send PDF to VI in progress
+		C_SendToPeppolLog( "E_DocAfterPrDoc call cancelled - Link to accounting in progress, and send PDF to VI in progress" )
 		RETURN
 	ENDIF
 	
 	&& Called after print all document.
 	&& pnAction : 1 = page setup, 2 = print preview, 3 = print, ...
 	
-	IF (goCache.JnlGetFieldValue(pcJnl, "TYPE", "") = "CI" OR goCache.JnlGetFieldValue(pcJnl, "TYPE", "") = "CC") AND INLIST(pnAction, 3, 4, 6)
+	IF (goCache.JnlGetFieldValue(pcJnl, "TYPE", "") = "CI" OR goCache.JnlGetFieldValue(pcJnl, "TYPE", "") = "CC") AND INLIST(pnAction, 3, 4, 5, 6)
 		LOCAL lcMessage, lcStatus
 		lcMessage = ""
 		lcStatus  = ""
@@ -193,7 +227,7 @@ PROCEDURE E_DocAfterPrDoc
 			lcMessage = MSG("Do you want to send this document %1 %2 to Peppol through Gowam ?", pcJnl, pnNum1)
 			&& Send one document
 			lcStatus = C_GetPeppolTecStatus(pcJnl, pnNum1)
-			IF "OK" $ lcStatus 
+			IF "OK" $ lcStatus AND NOT "not to sent" $ LOWER(lcStatus)
 				&& Already sent, nothing to do
 				lcMessage = ""
 			ELSE
@@ -214,6 +248,7 @@ PROCEDURE E_DocAfterPrDoc
 			ENDIF
 		ENDIF
 		IF !EMPTY(lcMessage)
+			C_SendToPeppolLog( MSG("E_DocAfterPrDoc called and result error : pcJnl = %1, pnNum1 = %2, pnNum2 = %3", pcJnl, pnNum1, pnNum2) )
 			Stop(lcMessage)
 		ENDIF
 	ENDIF
@@ -238,7 +273,6 @@ PROCEDURE E_DocPrintTrapEmail
 	lcEmailAdressForOtherDoc 	= goCache.CustGetFieldValue(lcThirdId, "C_EMAILOD", "@#@")
 	
 	IF lcEmailAdressForOtherDoc = "@#@"
-		&&Custom field does not exist
 		RETURN .F.
 	ENDIF
 	
@@ -251,27 +285,34 @@ PROCEDURE E_DocPrintTrapEmail
 	ENDIF
 	
 	RETURN .F.
-	
+				
 *--------------------------------------------------------------------------------
 PROCEDURE C_SendToPeppolViaGowam
 
-    LOCAL lcErrorMsg, lcJnl, lcNumberFrom, lcNumberTo, lcStatus
+    LOCAL lcErrorMsg, lcJnl, lcNumberFrom, lcNumberTo, lcStatus, llCanSend
 
 	lcErrorMsg 		= ""
     lcJnl			= ALLTRIM(c_dochead.jnl)
     lcNumberFrom	= TRANSFORM(c_dochead.Number)
     lcNumberTo		= TRANSFORM(c_dochead.Number)
-    
+    llCanSend		= .T.
     lcStatus 		= C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
     
-    IF "OK" $ lcStatus 
-    	&& Already sent, nothing to do
-    	Info("This document has already been sent and accepted on the Peppol network.")
-    ELSE
-    	&& Send
+    DO CASE
+    	CASE "OK" $ lcStatus AND NOT "not to sent" $ LOWER(lcStatus)
+    		Info("This document has already been sent and accepted on the Peppol network.")
+    		llCanSend	= .F.
+    	CASE "WAIT" $ lcStatus
+    		IF NOT YesNoConfirm("This document is currently being processed by Gowam, do you really want try again ?")	
+    			llCanSend = .F.
+    		ENDIF
+    ENDCASE	
+    	    
+	IF llCanSend
+	   	&& Send
     	IF TYPE("goPdf") = "O"
     		IF NOT goPdf.IsDocPdf(c_dochead.jnl, c_dochead.Number)
-    			IF NOT YesNoConfirm("No PDF in Logistics for this document, do you want to continue and use the PDF generated by Gowam ?")
+    			IF NOT YesNoConfirm("No PDF in Logistics for this document, do you want to continue and do a call to Gowam ?")
     				RETURN
     			ENDIF
     		ENDIF
@@ -288,6 +329,8 @@ ENDPROC
 *--------------------------------------------------------------------------------
 PROCEDURE C_SendToPeppol
 	LPARAMETERS pcJnl, pcNumberFrom, pcNumberTo, pcErrorMsg
+	
+	C_SendToPeppolLog( MSG("Call C_SendToPeppol start with : pcJnl = %1, pcNumberFrom = %2, pcNumberTo = %3", pcJnl, pcNumberFrom, pcNumberTo) )
 
 	LOCAL lcActualdir, lcGowamPath, lcGowamCustomPath, lcFolder, lcUser, lcJnl, lcNumberFrom, lcNumberTo
 
@@ -305,6 +348,7 @@ PROCEDURE C_SendToPeppol
     
 	IF !FILE(lcGowamPath+"gowam.exe")
     	pcErrorMsg = MSG("The Gowam program has not been installed (%1) for this Logistics Workstation", lcGowamPath)
+    	C_SendToPeppolLog( pcErrorMsg )
     	RETURN
     ENDIF    
 
@@ -338,16 +382,46 @@ PROCEDURE C_SendToPeppol
 	   			ENDIF
 	   		ENDFOR	
 	   	ENDIF
+	   	
+	   	C_SendToPeppolLog( "Before Call C_SendToPeppol with : "+TRANSFORM(lcCommande) )
 
 	    * Launch in the background
 	    loExec = loShell.Run(lcCommande, 1, .F.)
+	    
+	    C_SendToPeppolLog( "After Call C_SendToPeppol" )
 
 	CATCH TO loError
 		CatchError(loError)
 		pcErrorMsg = TRANSFORM(loError.Errorno)+" : "+loError.Message+CHR(13)+"Line : "+TRANSFORM(loError.lineno)+CHR(13)+"Procedure : "+TRANSFORM(loError.Procedure)+ CHR(13)+"Line Contents : "+TRANSFORM(loError.LineContents)
+		C_SendToPeppolLog( "Call C_SendToPeppol error catch : "+pcErrorMsg )
 	ENDTRY
    
    CD (lcActualdir)     			
+
+*--------------------------------------------------------------------------------
+PROCEDURE C_SendToPeppolLog
+	LPARAMETERS pcMessage
+	
+	LOCAL lcGowamPeppolLogDir, lcLogFile 
+	
+	lcGowamPeppolLogDir = gcDataDir+"GOWAM\LOG\"
+	lcLogFile = TRANSFORM(YEAR(DATE()))+"-"+PADL(TRANSFORM(MONTH(DATE())),2,"0")+"-"+PADL(TRANSFORM(DAY(DATE())),2,"0")+".log"
+	
+	IF !DIRECTORY(lcGowamPeppolLogDir)
+		MKDIR (lcGowamPeppolLogDir)
+	ENDIF
+	
+	IF !DIRECTORY(lcGowamPeppolLogDir)
+		RETURN
+	ENDIF
+	
+	TRY
+		STRTOFILE(TRANSFORM(DATETIME())+"-"+ComputerName()+"-"+gcUserId+":"+pcMessage+CHR(13)+CHR(10), lcGowamPeppolLogDir+lcLogFile, 1)
+	CATCH
+	ENDTRY
+	
+	RETURN 
+	
 	
 *///////////////////////////////////////////////////////////////////////////////////////////////////////////
 DEFINE CLASS C_RefreshPeppolTimer AS Timer
