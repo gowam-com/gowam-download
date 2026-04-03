@@ -7,22 +7,28 @@ PROCEDURE E_Doc2AfterBuildCrmFolderGroup
 	PARAMETERS poDocForm
 
 	&& called after set CRM FOLDER GROUP in DOCFORM
-
-	poDocForm.zBeginGroup( "w_L:" )
 	
-		poDocForm.zBeginGroup( "BW9:" )
+	poDocForm.zBeginGroup( "_LLBw:" )
+	
+		poDocForm.zBeginGroup( ":" )
 
-			poDocForm.zAddLabel(":", "Gowam Peppol :" , "")
-			=ADDPROPERTY(poDocForm, "zoC_PeppolTextBoxStatus", poDocForm.zAddTextBox("D:", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number)", 70, "", ".T.", ".T.", 0, 0, ""))
-			
-			=ADDPROPERTY(poDocForm, "zoC_PeppolEditBox", poDocForm.zAddEditBox( "", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number,'desc')", 70, 4, "", ".T.", ".T."))
-			poDocForm.zoC_PeppolEditBox.ReadOnly = .T.
-			=ADDPROPERTY(poDocForm, "zoC_RefreshPeppolTimer", CREATEOBJECT("C_RefreshPeppolTimer", poDocForm))
-			
-		poDocForm.zEndGroup( "" )	
+			poDocForm.zBeginGroup( "BW9:" )
 
-	poDocForm.zEndGroup( "" )
+				poDocForm.zAddLabel(":", "Gowam Peppol :" , "")
+				=ADDPROPERTY(poDocForm, "zoC_PeppolTextBoxStatus", poDocForm.zAddTextBox("D:", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number)", 70, "", ".T.", ".T.", 0, 0, ""))
+				=ADDPROPERTY(poDocForm, "zoC_PeppolEditBox", poDocForm.zAddEditBox( "", "C_GetPeppolTecStatus(c_dochead.jnl, c_dochead.number,'desc')", 70, 4, "", ".T.", ".T."))
+				poDocForm.zoC_PeppolEditBox.ReadOnly = .T.
+				=ADDPROPERTY(poDocForm, "zoC_RefreshPeppolTimer", CREATEOBJECT("C_RefreshPeppolTimer", poDocForm))
+				
+			poDocForm.zEndGroup( "" )		
 		
+		poDocForm.zEndGroup( "" )
+		
+	poDocForm.zEndGroup( "" )
+	
+	RETURN
+		
+
 *--------------------------------------------------------------------------------
 FUNCTION C_GetPeppolTecStatus
 	LPARAMETERS pcJnl, pnNumber, pcType
@@ -142,7 +148,8 @@ PROCEDURE E_Doc2MenuBuild
 *	poCallingMenu.DefineBar( pcPicture, pcToolTipText, pcClickProc, plUseMainTable, pcCaption, plNoOption, pcCmd )
 *	Example : poCallingMenu.DefineBar( PicExcel(), l("4957^Exporter vers Excel"), "_Screen.ActiveForm.zoFormMainGroup.DocdetExportExcel()" )	
 
-	poCallingMenu.DefineBar( PicExport(), "Send to Peppol through Gowam", "C_SendToPeppolViaGowam()")
+	poCallingMenu.DefineBar( PicExport(), "Send this document to Peppol through Gowam", "C_SendToPeppolViaGowam()")
+	poCallingMenu.DefineBar( PicExport(), "Send ALL pending documents to Peppol through Gowam", "C_SendToPeppolViaGowam('*ALL*')")
 
 *--------------------------------------------------------------------------------
 PROCEDURE E_Doc2CanMod
@@ -255,6 +262,20 @@ PROCEDURE E_DocAfterPrDoc
 	
 	RETURN
 
+*---------------------------------------------------------------------------------	
+PROCEDURE E_SendMailUpdate
+	LPARAMETERS pcTo, pcSubject, pcBody, pcOption, pcAttach1, pcAttach2, pcAttach3, pcAttach4, pcAttach5, pcAttach6, pcAttach7, pcAttach8, pcAttach9
+
+	IF USED("__Cust") AND TYPE("__Cust.C_EMAILOD") = "C" AND LOWER(ALLTRIM(__Cust.Email)) = LOWER(ALLTRIM(pcTo)) AND PADR(LOWER(__Cust.Email),250) == PADR(LOWER(__Cust.C_EMAILOD),250) AND ;
+		("FAC " $ UPPER(pcSubject) OR "NCC " $ UPPER(pcSubject))
+		&& IF cust.EMAIL and cust.C_EMAILOD are filled with the same adress, this means that the customer no longer wants to receive their invoices and credit notes by email.
+		&& In this case, we reset the email address to blank.
+		&& We cannot reset the CUST.EMAIL field, because the synchronization with the accounting system will reset the email address in the accounting database.		
+		pcTo = ""	
+	ENDIF
+	
+	RETURN
+	
 *--------------------------------------------------------------------------------	
 PROCEDURE E_DocPrintTrapEmail
 	PARAMETERS pcJnl, pnNum, pnLayout, pcEmail
@@ -300,22 +321,9 @@ PROCEDURE E_DocPrintTrapEmail
 	
 	RETURN .F.
 
-*---------------------------------------------------------------------------------	
-PROCEDURE E_SendMailUpdate
-	LPARAMETERS pcTo, pcSubject, pcBody, pcOption, pcAttach1, pcAttach2, pcAttach3, pcAttach4, pcAttach5, pcAttach6, pcAttach7, pcAttach8, pcAttach9
-
-	IF USED("__Cust") AND TYPE("__Cust.C_EMAILOD") = "C" AND LOWER(ALLTRIM(__Cust.Email)) = LOWER(ALLTRIM(pcTo)) AND PADR(LOWER(__Cust.Email),250) == PADR(LOWER(__Cust.C_EMAILOD),250) AND ;
-		("FAC " $ UPPER(pcSubject) OR "NCC " $ UPPER(pcSubject))
-		&& IF cust.EMAIL and cust.C_EMAILOD are filled with the same adress, this means that the customer no longer wants to receive their invoices and credit notes by email.
-		&& In this case, we reset the email address to blank.
-		&& We cannot reset the CUST.EMAIL field, because the synchronization with the accounting system will reset the email address in the accounting database.		
-		pcTo = ""	
-	ENDIF
-	
-	RETURN
-				
 *--------------------------------------------------------------------------------
 PROCEDURE C_SendToPeppolViaGowam
+	LPARAMETERS pcAction
 
     LOCAL lcErrorMsg, lcJnl, lcNumberFrom, lcNumberTo, lcStatus, llCanSend
 
@@ -324,6 +332,15 @@ PROCEDURE C_SendToPeppolViaGowam
     lcNumberFrom	= TRANSFORM(c_dochead.Number)
     lcNumberTo		= TRANSFORM(c_dochead.Number)
     llCanSend		= .T.
+    
+    IF TYPE("pcAction") = "C" AND pcAction = "*ALL*"
+   		C_SendToPeppol("*ALL*", 0, 0, @lcErrorMsg)
+		IF !EMPTY(lcErrorMsg)
+			Stop(lcErrorMsg)
+		ENDIF   		
+    	RETURN
+    ENDIF
+    
     lcStatus 		= C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
     
     DO CASE
@@ -358,7 +375,12 @@ ENDPROC
 PROCEDURE C_SendToPeppol
 	LPARAMETERS pcJnl, pcNumberFrom, pcNumberTo, pcErrorMsg
 	
-	C_SendToPeppolLog( MSG("Call C_SendToPeppol start with : pcJnl = %1, pcNumberFrom = %2, pcNumberTo = %3", pcJnl, pcNumberFrom, pcNumberTo) )
+	DO CASE
+		CASE pcJnl = "*ALL*"
+			C_SendToPeppolLog( "Call C_SendToPeppol for ALL pending documents." )
+		OTHERWISE
+			C_SendToPeppolLog( MSG("Call C_SendToPeppol start with : pcJnl = %1, pcNumberFrom = %2, pcNumberTo = %3", pcJnl, pcNumberFrom, pcNumberTo) )
+	ENDCASE
 
 	LOCAL lcActualdir, lcGowamPath, lcGowamCustomPath, lcFolder, lcUser, lcJnl, lcNumberFrom, lcNumberTo
 
@@ -394,22 +416,29 @@ PROCEDURE C_SendToPeppol
 	    lcGowamPath = lcGowamPath+"gowam.exe"
 	    
 	    * Build the command
-	    lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser + [" --jnl="] + lcJnl + [" --numberFrom="] + lcNumberFrom + [" --numberTo="] + lcNumberTo +["]
-	        
-	    * Generate the CRM action(s) that indicate that a request has been made to Gowam
-	    IF lcNumberFrom = lcNumberTo OR VAL(lcNumberTo) < VAL(lcNumberFrom)
-	    	IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
-		   		C_AddHistPeppolAction(lcJnl, VAL(lcNumberFrom), "WAIT", "Processing in progress by Gowam")
-		   	ENDIF
-	   	ELSE
-	   		LOCAL lnAction, lnTotAction
-	   		lnTotAction = (VAL(lcNumberTo)-VAL(lcNumberFrom)) + 1
-	   		FOR lnAction = 1 TO lnTotAction
-	   			IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, (VAL(lcNumberFrom)-1)+lnAction)
-	   				C_AddHistPeppolAction(lcJnl, (VAL(lcNumberFrom)-1)+lnAction, "WAIT", "Processing in progress by Gowam")
-	   			ENDIF
-	   		ENDFOR	
-	   	ENDIF
+		DO CASE
+		
+			CASE pcJnl = "*ALL*"
+				lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser 
+				
+			OTHERWISE	    
+		    	lcCommande = ["] + lcGowamPath + [" --folder="] + lcFolder + [" --user="] + lcUser + [" --jnl="] + lcJnl + [" --numberFrom="] + lcNumberFrom + [" --numberTo="] + lcNumberTo +["]
+
+			    * Generate the CRM action(s) that indicate that a request has been made to Gowam
+			    IF lcNumberFrom = lcNumberTo OR VAL(lcNumberTo) < VAL(lcNumberFrom)
+			    	IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, VAL(lcNumberFrom))
+				   		C_AddHistPeppolAction(lcJnl, VAL(lcNumberFrom), "WAIT", "Processing in progress by Gowam")
+				   	ENDIF
+			   	ELSE
+			   		LOCAL lnAction, lnTotAction
+			   		lnTotAction = (VAL(lcNumberTo)-VAL(lcNumberFrom)) + 1
+			   		FOR lnAction = 1 TO lnTotAction
+			   			IF NOT "WAIT" $ C_GetPeppolTecStatus(lcJnl, (VAL(lcNumberFrom)-1)+lnAction)
+			   				C_AddHistPeppolAction(lcJnl, (VAL(lcNumberFrom)-1)+lnAction, "WAIT", "Processing in progress by Gowam")
+			   			ENDIF
+			   		ENDFOR	
+			   	ENDIF		    	
+		ENDCASE
 	   	
 	   	C_SendToPeppolLog( "Before Call C_SendToPeppol with : "+TRANSFORM(lcCommande) )
 
@@ -449,7 +478,6 @@ PROCEDURE C_SendToPeppolLog
 	ENDTRY
 	
 	RETURN 
-	
 	
 *///////////////////////////////////////////////////////////////////////////////////////////////////////////
 DEFINE CLASS C_RefreshPeppolTimer AS Timer
