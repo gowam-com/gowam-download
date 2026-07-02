@@ -402,6 +402,12 @@ PROCEDURE C_SendToPeppol
     	RETURN
     ENDIF    
 
+    IF NOT "*ALL*" $ pcJnl AND goCache.JnlGetFieldValue(pcJnl, "NOINVOICE", .F.)	&& Exclude JNL for Peppol
+    	pcErrorMsg = MSG("This journal (%1) is excluded for Peppol (jnl.noinvoice)", lcJnl)
+    	C_SendToPeppolLog( pcErrorMsg )
+    	RETURN    		
+    ENDIF
+
     CD (lcGowamPath)
     	
 	LOCAL lnOldSelect, loShell, lcCommande, loExec, loError
