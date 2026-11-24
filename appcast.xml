@@ -31,8 +31,8 @@
     </item>
     <item>
       <title>Version 2.0.0 Windows ZIP</title>
-      <pubDate>Sun, 22 Nov 2026 16:44:42 +0000</pubDate>
-      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-2.0.0+34-windows.zip" sparkle:dsaSignature="" sparkle:version="2.0.0+34" sparkle:os="windows" length="0" type="application/zip" />
+      <pubDate>Tue, 24 Nov 2026 21:49:59 +0000</pubDate>
+      <enclosure url="https://github.com/gowam-com/gowam-download/raw/refs/heads/main/gowam-2.0.0+35-windows.zip" sparkle:dsaSignature="" sparkle:version="2.0.0+35" sparkle:os="windows" length="0" type="application/zip" />
     </item>
   </channel>
 </rss>
