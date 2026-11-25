@@ -7,11 +7,12 @@
 ## Installer Gowam PEPPOL-DBF ou Local-Only sur Windows
 
 1. **Télécharger Gowam**
-    - Téléchargez la [dernière version de Gowam](gowam-windows-setup.exe).
+    - Téléchargez la [dernière version de Gowam V1 pour Peppol](gowam-windows-setup.exe).
+    - Téléchargez la [dernière version de Gowam V2](gowam-2.0.0+35-windows.zip).
 
 2. **Décompresser l'archive**
-    - **IMPORTANT**: Dans le répertoire de la workstation (obligatoire pour la version PEPPOL-DBF), créez un nouveau dossier nommé `gowam`.
-    Choisissez le dossier de votre choix pour la version Local-Only.
+    - **IMPORTANT pour la version PEPPOL-DBF**: Dans le répertoire Logistics de la workstation (où il y a le Logistics.exe), créez un nouveau dossier nommé `gowam`.
+    - Pour les autres versions de Gowam, choisissez un dossier où installer gowam (ex: c:\gowam).
     - Extrayez le contenu du fichier téléchargé dans ce nouveau dossier `gowam`.
     
 3. **Lancer l'application**
