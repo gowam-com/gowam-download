@@ -1,7 +1,3 @@
-- Download [Gowam for Windows](gowam-windows-setup.exe)
-
----
-
 # FR
 
 ## Installer Gowam PEPPOL-DBF ou Local-Only sur Windows
